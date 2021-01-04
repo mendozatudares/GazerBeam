@@ -34,7 +34,7 @@ namespace Interaction_Streams_101
         public static extern short GetKeyState(int vKey);
 
         [DllImport("user32.dll")]
-        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
+        public static extern void KeyboardEvent(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
         
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const int KEYEVENTF_KEYUP = 0x0002;
@@ -81,7 +81,7 @@ namespace Interaction_Streams_101
                     else if (_moveOnDwell && _wKeyUp)
                     {
                         _wKeyUp = false;
-                        keybd_event(VK_W, 0, KEYEVENTF_EXTENDEDKEY, 0);
+                        KeyboardEvent(VK_W, 0, KEYEVENTF_EXTENDEDKEY, 0);
                     }
                 }
 
@@ -98,7 +98,7 @@ namespace Interaction_Streams_101
                             if (_moveOnDwell && !_wKeyUp)
                             {
                                 _wKeyUp = true;
-                                keybd_event(VK_W, 0, KEYEVENTF_KEYUP, 0);
+                                KeyboardEvent(VK_W, 0, KEYEVENTF_KEYUP, 0);
                             }
                         }
                     }
