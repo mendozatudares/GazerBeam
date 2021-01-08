@@ -62,7 +62,7 @@ namespace Interaction_Streams_101
                 else if (args[0].Equals("-l"))
                     _loggingMode = true;
             }
-
+            
             // Get the currently running MultiCraft window. If no window found, end the program.
             var minecraftWindow = FindWindow(null, "Minecraft 1.9");
             if (!GetWindowRect(minecraftWindow, out var rect))
@@ -77,20 +77,24 @@ namespace Interaction_Streams_101
             var gazePointDataStream = _host.Streams.CreateGazePointDataStream();
             collect.Start();
 
-            // Get the gaze data.  
+            // Get the gaze data.
             gazePointDataStream.GazePoint((x, y, _) =>
             {
+                var t = DateTime.UtcNow.ToString("hh:mm:ss.fff");
+                x = (int)x;
+                y = (int)y;
+
                 if (dwell.IsRunning && dwell.Elapsed > TimeSpan.FromSeconds(3))
                 {
-                    Console.Write("[{0}]: dwell exceeded 3 seconds.");
+                    Console.Write("{0},{1},{2},{3}", t, x, y, "dwell exceeded 3 seconds.");
                     if (_stopOnDwell)
                     {
-                        Console.WriteLine("terminating.");
+                        Console.WriteLine(" terminating.");
                         EndHostConnection();
                     }
                     else if (_moveOnDwell && _wKeyUp)
                     {
-                        Console.WriteLine("moving forward.");
+                        Console.WriteLine(" moving forward.");
                         _wKeyUp = false;
                         KeyboardEvent(VK_W, 0, KEYEVENTF_EXTENDEDKEY, 0);
                     }
@@ -98,8 +102,7 @@ namespace Interaction_Streams_101
 
                 if (collect.Elapsed > TimeSpan.FromMilliseconds(16))
                 {
-                    var t = DateTime.UtcNow.ToString("hh:mm:ss.fff");
-                    Console.WriteLine("[{0}]: x: {1}, y: {2}", t, (int)x, (int)y);
+                    Console.WriteLine("{0},{1},{2},{3}", t, x, y, "");
                     var eyePos = new Point((int)x, (int)y);
 
                     if (!_loggingMode && GetCursorPos(out var cursorPos) && ScreenToClient(minecraftWindow, ref eyePos))
@@ -108,11 +111,11 @@ namespace Interaction_Streams_101
                         if (!moved && !dwell.IsRunning)
                         {
                             dwell.Start();
-                            Console.WriteLine("[{0}]: starting dwell.", t);
+                            Console.WriteLine("{0},{1},{2},{3}", t, x, y, "starting dwell.");
                         }
                         else if (moved && dwell.IsRunning)
                         {
-                            Console.WriteLine("[{0}]: ending dwell. length: {1} ms", t, dwell.Elapsed.TotalMilliseconds);
+                            Console.WriteLine("{0},{1},{2},{3}", t, x, y, ("ending dwell. length: " + dwell.Elapsed.TotalMilliseconds.ToString() + " ms"));
                             dwell.Reset();
                             if (_moveOnDwell && !_wKeyUp)
                             {
@@ -127,11 +130,11 @@ namespace Interaction_Streams_101
                         if (!moved && !dwell.IsRunning)
                         {
                             dwell.Start();
-                            Console.WriteLine("[{0}]: starting dwell.", t);
+                            Console.WriteLine("{0},{1},{2},{3}", t, x, y, "starting dwell.");
                         }
                         else if (moved && dwell.IsRunning)
                         {
-                            Console.WriteLine("[{0}]: ending dwell. length: {1} ms", t, dwell.Elapsed.TotalMilliseconds);
+                            Console.WriteLine("{0},{1},{2},{3}", t, x, y, ("ending dwell. length: " + dwell.Elapsed.TotalMilliseconds.ToString() + " ms."));
                             dwell.Reset();
                         }
                     }
@@ -168,7 +171,6 @@ namespace Interaction_Streams_101
 
             // Return true if eye position has significant displacement
             return true;
-
         }
 
         private static bool MoveCursor(Point eyePos, Point cursorPos,  int windowWidth, int windowHeight)
