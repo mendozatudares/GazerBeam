@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Windows.Forms;
 using Tobii.Interaction;
 
@@ -36,7 +35,7 @@ namespace Interaction_Streams_101
         public static extern short GetKeyState(int vKey);
 
         [DllImport("user32.dll")]
-        public static extern void KeyboardEvent(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
         
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const int KEYEVENTF_KEYUP = 0x0002;
@@ -50,8 +49,8 @@ namespace Interaction_Streams_101
             _host = new Host();
             var collect = new Stopwatch();
             var dwell = new Stopwatch();
+            var prevEyePos = new Point(-1, -1);
             bool moved;
-            Point prevEyePos = new Point(-1, -1);
 
             if (args.Length > 0)
             {
@@ -86,17 +85,15 @@ namespace Interaction_Streams_101
 
                 if (dwell.IsRunning && dwell.Elapsed > TimeSpan.FromSeconds(3))
                 {
-                    Console.Write("{0},{1},{2},{3}", t, x, y, "dwell exceeded 3 seconds.");
+                    Console.WriteLine("{0},{1},{2},{3}", t, x, y, "dwelling...");
                     if (_stopOnDwell)
                     {
-                        Console.WriteLine(" terminating.");
                         EndHostConnection();
                     }
                     else if (_moveOnDwell && _wKeyUp)
                     {
-                        Console.WriteLine(" moving forward.");
                         _wKeyUp = false;
-                        KeyboardEvent(VK_W, 0, KEYEVENTF_EXTENDEDKEY, 0);
+                        keybd_event(VK_W, 0, KEYEVENTF_EXTENDEDKEY, 0);
                     }
                 }
 
@@ -120,13 +117,13 @@ namespace Interaction_Streams_101
                             if (_moveOnDwell && !_wKeyUp)
                             {
                                 _wKeyUp = true;
-                                KeyboardEvent(VK_W, 0, KEYEVENTF_KEYUP, 0);
+                                keybd_event(VK_W, 0, KEYEVENTF_KEYUP, 0);
                             }
                         }
                     }
                     else if (_loggingMode && prevEyePos.X != -1 && prevEyePos.Y != -1)
                     {
-                        moved = CheckDisplacement(eyePos, prevEyePos, windowWidth, windowHeight);
+                        moved = CheckDisplacement(eyePos, prevEyePos);
                         if (!moved && !dwell.IsRunning)
                         {
                             dwell.Start();
@@ -146,20 +143,15 @@ namespace Interaction_Streams_101
                 }
             });
 
-            while (true)
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(CancelHandler);
+            while (_loggingMode || (!_loggingMode && GetKeyState((int)Keys.OemPeriod) == 0))
             {
-                // Wait for user to press . key to end.
-                Thread.Sleep(16);
-                
-                if (!_loggingMode && GetKeyState((int)Keys.OemPeriod) == 1)
-                    break;
-                if (_loggingMode && Console.KeyAvailable && Console.ReadKey(true).KeyChar.Equals('.'))
-                    break;
+                // Wait for user to press . key to end if not logging
             }
             EndHostConnection();
         }
 
-        private static bool CheckDisplacement(Point eyePos, Point prevEyePos, int windowWidth, int windowHeight)
+        private static bool CheckDisplacement(Point eyePos, Point prevEyePos)
         {
             // Get displacement from previous eye position
             var displaceX = eyePos.X - prevEyePos.X;
@@ -188,6 +180,11 @@ namespace Interaction_Streams_101
                 return false;
             SetCursorPos(cursorPos.X + displaceX / 40, cursorPos.Y + displaceY / 30);
             return true;
+        }
+
+        private static void CancelHandler(object sender, ConsoleCancelEventArgs args)
+        {
+            EndHostConnection();
         }
 
         private static void EndHostConnection()
