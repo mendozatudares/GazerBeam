@@ -36,6 +36,9 @@ namespace Interaction_Streams_101
 
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr windowPtr);
         
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const int KEYEVENTF_KEYUP = 0x0002;
@@ -50,6 +53,9 @@ namespace Interaction_Streams_101
             var collect = new Stopwatch();
             var dwell = new Stopwatch();
             var prevEyePos = new Point(-1, -1);
+            var minecraftWindow = new IntPtr();
+            var windowWidth = 0;
+            var windowHeight = 0;
             bool moved;
 
             if (args.Length > 0)
@@ -61,17 +67,19 @@ namespace Interaction_Streams_101
                 else if (args[0].Equals("-l"))
                     _loggingMode = true;
             }
-            
-            // Get the currently running MultiCraft window. If no window found, end the program.
-            var minecraftWindow = FindWindow(null, "Minecraft 1.9");
-            if (!GetWindowRect(minecraftWindow, out var rect))
-            {
-                Console.WriteLine("No Minecraft 1.9 window found.");
-                EndHostConnection();
-            }
-            var windowWidth = rect.Right - rect.Left;
-            var windowHeight = rect.Bottom - rect.Top;
 
+            // Get the currently running MultiCraft window.
+            if (!_loggingMode)
+            {
+                minecraftWindow = FindWindow(null, "Minecraft 1.9");
+                if (!GetWindowRect(minecraftWindow, out var rect))
+                {
+                    EndHostConnection();
+                }
+                SetForegroundWindow(minecraftWindow);
+                windowWidth = rect.Right - rect.Left;
+                windowHeight = rect.Bottom - rect.Top;
+            }
             // Create stream. 
             var gazePointDataStream = _host.Streams.CreateGazePointDataStream();
             collect.Start();
